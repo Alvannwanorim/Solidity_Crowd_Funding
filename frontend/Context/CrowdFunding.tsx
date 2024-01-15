@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import { CrowdFundingABI, CrowdFundingAddress } from "./constants";
 import Web3Modal from "web3modal";
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useContext, useState } from "react";
 import {
   CrowdFunding,
   CrowdFundingContextType,
@@ -169,4 +169,14 @@ export const CrowdFundingProvider: React.FC<{ children: ReactNode }> = ({
       {children}
     </CrowdFundingContext.Provider>
   );
+};
+
+export const useCrowdFundingContext = (): CrowdFundingContextType => {
+  const context = useContext(CrowdFundingContext);
+  if (!context)
+    throw new Error(
+      "useCrowdFundingContext must be used within the CrowdFundingContext"
+    );
+
+  return context;
 };
