@@ -2,7 +2,11 @@ import { ethers } from "ethers";
 import { CrowdFundingABI, CrowdFundingAddress } from "./constants";
 import Web3Modal from "web3modal";
 import React, { ReactNode, useState } from "react";
-import { CrowdFundingContextType } from "@/interfaces/CrowdFunding";
+import {
+  CrowdFunding,
+  CrowdFundingContextType,
+} from "@/interfaces/CrowdFunding";
+import { CreateCampaign } from "@/interfaces/CreateCampaign";
 
 const fetchContract = async (signerOrProvider: ethers.Signer) =>
   new ethers.Contract(CrowdFundingAddress, CrowdFundingABI, signerOrProvider);
@@ -10,10 +14,6 @@ const fetchContract = async (signerOrProvider: ethers.Signer) =>
 async function getContract() {
   const localRpcUrl = "http://localhost:8545";
   try {
-    const web3modal = new Web3Modal({
-      network: localRpcUrl,
-    });
-    const connection = await web3modal.connect();
     const provider = new ethers.JsonRpcProvider(localRpcUrl);
     const signer = await provider.getSigner();
     const contract = await fetchContract(signer);
@@ -32,6 +32,136 @@ export const CrowdFundingProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const titleData = "Crowd Funding Title";
   const [currentAccount, setCurrentAccount] = useState<string>("");
+  const [error, setError] = useState<string>("");
+
+  /**
+   * @description create campaign
+   * @param campaign
+   */
+  const createCampaign = async (campaign: CreateCampaign) => {
+    try {
+      const { title, description, amount, deadline } = campaign;
+      const contract = await getContract();
+      const transactions = await contract?.createCampaign(
+        currentAccount,
+        title,
+        description,
+        ethers.parseUnits(amount, 18),
+        new Date(deadline).getTime()
+      );
+      await transactions.wait();
+      console.log("Create campaign  transaction", transactions);
+    } catch (error) {
+      console.log("CReate campaign failed", error);
+    }
+  };
+
+  const getCampaigns = async () => {
+    const contract = await getContract();
+    const campaigns = await contract?.getCampaigns();
+
+    const parsedCampaigns = campaigns.map(
+      (campaign: CrowdFunding, i: number) => ({
+        owner: campaign.owner,
+        title: campaign.title,
+        description: campaign.description,
+        target: ethers.formatEther(campaign.target),
+        deadline: campaign.deadline,
+        amountCollected: ethers.formatEther(
+          campaign.amountCollected.toString()
+        ),
+        pId: i,
+      })
+    );
+    return parsedCampaigns;
+  };
+
+  /**
+   * Get User campaign
+   * filter campaigns for login in user
+   */
+  const getUserCampaigns = async () => {
+    const contract = await getContract();
+    const campaigns = await contract?.getCampaigns();
+
+    // Refactor this and pull it from state
+    const account = await window.ethereum.request({ method: "eth_accounts" });
+    const currentAccount = account[0];
+    const filteredCampaigns = campaigns.filter(
+      (campaign: CrowdFunding) => (campaign.owner = currentAccount)
+    );
+
+    const userCampaigns = filteredCampaigns.map(
+      (campaign: CrowdFunding, i: number) => ({
+        owner: campaign.owner,
+        title: campaign.title,
+        description: campaign.description,
+        target: ethers.formatEther(campaign.target),
+        deadline: campaign.deadline,
+        amountCollected: ethers.formatEther(
+          campaign.amountCollected.toString()
+        ),
+        pId: i,
+      })
+    );
+    return userCampaigns;
+  };
+
+  /**
+   * @description donate to a campaign
+   * @param pId
+   * @param amount
+   * @returns
+   */
+  const donate = async (pId: number, amount: string) => {
+    const contract = await getContract();
+
+    const campaignData = await contract?.donate(pId, {
+      value: ethers.parseEther(amount),
+    });
+    await campaignData.wait();
+    location.reload();
+    return campaignData;
+  };
+
+  const getDonations = async (pId: number) => {
+    const contract = await getContract();
+    const donations = await contract?.getDonations();
+
+    const numberOfDonations = donations[0].length;
+
+    const parsedDonations = [];
+
+    for (let i = 0; i < numberOfDonations; i++) {
+      parsedDonations.push({
+        donors: donations[0][i],
+        donation: ethers.formatEther(donations[1][i].toString()),
+      });
+    }
+    return parsedDonations;
+  };
+
+  /**
+   * @description check for metamask installation
+   */
+  const checkWalletConnection = async () => {
+    if (window.ethereum) setError("Please install metamask");
+    const account = await window.ethereum.request({ method: "eth_accounts" });
+    if (account.length) {
+      setCurrentAccount(account[0]);
+    } else {
+      setError("please metamask and reload");
+    }
+  };
+
+  const connectWallet = async () => {
+    if (window.ethereum) setError("Please install metamask");
+    const account = await window.ethereum.request({
+      method: "eth_requestAccounts",
+    });
+    setCurrentAccount(account[0]);
+  };
+  //Context values
   const contextValues: CrowdFundingContextType = {};
 
   return (
