@@ -1,3 +1,5 @@
+import { Dispatch, SetStateAction } from "react";
+
 export interface CrowdFunding {
   owner: string;
   title: string;
@@ -10,5 +12,8 @@ export interface CrowdFunding {
 }
 
 export interface CrowdFundingContextType {
-  // crowdFunding: CrowdFunding[],
+  currentAccount: string;
+  setCurrentAccount: Dispatch<SetStateAction<string>>;
+  connectWallet: () => Promise<void>;
+  checkWalletConnection: () => Promise<void>;
 }

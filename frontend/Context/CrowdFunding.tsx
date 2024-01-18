@@ -162,7 +162,12 @@ export const CrowdFundingProvider: React.FC<{ children: ReactNode }> = ({
     setCurrentAccount(account[0]);
   };
   //Context values
-  const contextValues: CrowdFundingContextType = {};
+  const contextValues: CrowdFundingContextType = {
+    currentAccount,
+    setCurrentAccount,
+    connectWallet,
+    checkWalletConnection,
+  };
 
   return (
     <CrowdFundingContext.Provider value={contextValues}>
