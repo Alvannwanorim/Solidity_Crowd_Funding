@@ -19,7 +19,6 @@ const Footer = () => {
             <p>
               Here you can use rows and columns to organize footer contents.
               Lorem ipsum dolor sit amet consectetur adipisicing elit.
-              Consectetur, consequuntur.
             </p>
           </div>
           <div className="">

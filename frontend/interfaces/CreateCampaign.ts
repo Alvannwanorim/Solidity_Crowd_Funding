@@ -1,7 +1,6 @@
 export interface CreateCampaign {
-  target: number;
+  target: string;
   title: string;
   description: string;
-  amount: string;
   deadline: number;
 }

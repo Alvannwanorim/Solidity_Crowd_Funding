@@ -11,12 +11,13 @@ import { CreateCampaign } from "@/interfaces/CreateCampaign";
 const fetchContract = async (signerOrProvider: ethers.Signer) =>
   new ethers.Contract(CrowdFundingAddress, CrowdFundingABI, signerOrProvider);
 
-async function getContract() {
+export async function getContract() {
   const localRpcUrl = "http://localhost:8545";
   try {
-    const provider = new ethers.JsonRpcProvider(localRpcUrl);
+    const provider = new ethers.providers.JsonRpcProvider(localRpcUrl);
     const signer = await provider.getSigner();
     const contract = await fetchContract(signer);
+    // console.log(contract);
     return contract;
   } catch (err) {
     console.log(err);
@@ -40,16 +41,21 @@ export const CrowdFundingProvider: React.FC<{ children: ReactNode }> = ({
    */
   const createCampaign = async (campaign: CreateCampaign) => {
     try {
-      const { title, description, amount, deadline } = campaign;
+      if (currentAccount === "") {
+        await connectWallet();
+      }
+
+      const { title, description, target, deadline } = campaign;
       const contract = await getContract();
       const transactions = await contract?.createCampaign(
         currentAccount,
         title,
         description,
-        ethers.parseUnits(amount, 18),
+        ethers.utils.parseUnits(target, 18),
         new Date(deadline).getTime()
       );
       await transactions.wait();
+      return transactions;
       console.log("Create campaign  transaction", transactions);
     } catch (error) {
       console.log("CReate campaign failed", error);
@@ -57,23 +63,29 @@ export const CrowdFundingProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const getCampaigns = async () => {
-    const contract = await getContract();
-    const campaigns = await contract?.getCampaigns();
+    try {
+      const contract = await getContract();
+      const campaigns = await contract?.getCampaigns();
 
-    const parsedCampaigns = campaigns.map(
-      (campaign: CrowdFunding, i: number) => ({
-        owner: campaign.owner,
-        title: campaign.title,
-        description: campaign.description,
-        target: ethers.formatEther(campaign.target),
-        deadline: campaign.deadline,
-        amountCollected: ethers.formatEther(
-          campaign.amountCollected.toString()
-        ),
-        pId: i,
-      })
-    );
-    return parsedCampaigns;
+      const parsedCampaigns = campaigns.map(
+        (campaign: CrowdFunding, i: number) => ({
+          owner: campaign.owner,
+          title: campaign.title,
+          description: campaign.description,
+          target: ethers.utils.formatEther(campaign.target),
+          deadline: campaign.deadline,
+          amountCollected: ethers.utils.formatEther(
+            campaign.amountCollected.toString()
+          ),
+          pId: i,
+        })
+      );
+      console.log(parsedCampaigns);
+
+      return parsedCampaigns;
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   /**
@@ -88,7 +100,7 @@ export const CrowdFundingProvider: React.FC<{ children: ReactNode }> = ({
     const account = await window.ethereum.request({ method: "eth_accounts" });
     const currentAccount = account[0];
     const filteredCampaigns = campaigns.filter(
-      (campaign: CrowdFunding) => (campaign.owner = currentAccount)
+      (campaign: CrowdFunding) => campaign.owner === currentAccount
     );
 
     const userCampaigns = filteredCampaigns.map(
@@ -96,9 +108,9 @@ export const CrowdFundingProvider: React.FC<{ children: ReactNode }> = ({
         owner: campaign.owner,
         title: campaign.title,
         description: campaign.description,
-        target: ethers.formatEther(campaign.target),
+        target: ethers.utils.formatEther(campaign.target),
         deadline: campaign.deadline,
-        amountCollected: ethers.formatEther(
+        amountCollected: ethers.utils.formatEther(
           campaign.amountCollected.toString()
         ),
         pId: i,
@@ -117,7 +129,7 @@ export const CrowdFundingProvider: React.FC<{ children: ReactNode }> = ({
     const contract = await getContract();
 
     const campaignData = await contract?.donate(pId, {
-      value: ethers.parseEther(amount),
+      value: ethers.utils.parseEther(amount),
     });
     await campaignData.wait();
     location.reload();
@@ -135,7 +147,7 @@ export const CrowdFundingProvider: React.FC<{ children: ReactNode }> = ({
     for (let i = 0; i < numberOfDonations; i++) {
       parsedDonations.push({
         donors: donations[0][i],
-        donation: ethers.formatEther(donations[1][i].toString()),
+        donation: ethers.utils.formatEther(donations[1][i].toString()),
       });
     }
     return parsedDonations;
@@ -167,6 +179,12 @@ export const CrowdFundingProvider: React.FC<{ children: ReactNode }> = ({
     setCurrentAccount,
     connectWallet,
     checkWalletConnection,
+    titleData,
+    getCampaigns,
+    donate,
+    createCampaign,
+    getUserCampaigns,
+    getDonations,
   };
 
   return (
