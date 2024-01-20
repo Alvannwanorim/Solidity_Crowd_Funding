@@ -58,6 +58,7 @@ const Index = () => {
           setDonate={setDonateCampaign}
           donate={donateCampaign}
           donateFunction={donate}
+          getDonations={getDonations}
         />
       )}
     </>

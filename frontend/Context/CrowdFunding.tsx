@@ -7,6 +7,7 @@ import {
   CrowdFundingContextType,
 } from "@/interfaces/CrowdFunding";
 import { CreateCampaign } from "@/interfaces/CreateCampaign";
+import { pid } from "process";
 
 const fetchContract = async (signerOrProvider: ethers.Signer) =>
   new ethers.Contract(CrowdFundingAddress, CrowdFundingABI, signerOrProvider);
@@ -137,8 +138,10 @@ export const CrowdFundingProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const getDonations = async (pId: number) => {
+    console.log(pId);
+
     const contract = await getContract();
-    const donations = await contract?.getDonations();
+    const donations = await contract?.getDonations(pid);
 
     const numberOfDonations = donations[0].length;
 
