@@ -128,8 +128,9 @@ export const CrowdFundingProvider: React.FC<{ children: ReactNode }> = ({
    */
   const donate = async (pId: number, amount: string) => {
     const contract = await getContract();
+    console.log(pId, amount);
 
-    const campaignData = await contract?.donate(pId, {
+    const campaignData = await contract?.donateToCampaign(pId, {
       value: ethers.utils.parseEther(amount),
     });
     await campaignData.wait();
